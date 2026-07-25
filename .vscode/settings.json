@@ -1,0 +1,11 @@
+{
+  // Suppress VS Code CSS linter warnings for Tailwind CSS v4 syntax
+  // @custom-variant, @theme, @apply are valid Tailwind v4 directives
+  "css.lint.unknownAtRules": "ignore",
+  "css.validate": false,
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  // Pyrefly: disable to prevent false positive errors on virtual in-memory files
+  "pyrefly.enable": false
+}

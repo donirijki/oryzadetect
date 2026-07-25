@@ -1,0 +1,14 @@
+# Pyrefly configuration — disable type checking on virtual in-memory files
+# These errors are false positives from the VS Code Pyrefly extension
+# analyzing code fragments without full import context
+
+[tool.pyrefly]
+# Hanya periksa folder backend — abaikan file virtual Pyrefly
+search_path = ["backend"]
+exclude = [
+    "**/__pyrefly_virtual__/**",
+    "**/inmemory/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/backend/static/**",
+]

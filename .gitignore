@@ -1,0 +1,27 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+
+# Python virtual environment and cache
+backend/venv/
+**/__pycache__/
+*.pyc
+
+# Large ML models (GitHub limit is 100MB, warning at 50MB)
+backend/models/model_final_padi.h5
+backend/models/model_final_padi.keras
+
+# Build output
+dist/
