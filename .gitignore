@@ -20,5 +20,5 @@ backend/venv/
 *.pyc
 
 
-# Build output
-dist/
+# Build output (dist/ sengaja di-commit agar server bisa serve static files)
+# dist/
