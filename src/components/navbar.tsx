@@ -7,8 +7,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 
 const navLinks = [
   { label: 'Beranda', href: '/' },
-  { label: 'Deteksi Penyakit', href: '/deteksi' },
-  { label: 'Info Penyakit', href: '/informasi' },
+  { label: 'Deteksi', href: '/deteksi' },
+  { label: 'Informasi', href: '/informasi' },
   { label: 'Cara Kerja', href: '/cara-kerja' },
   { label: 'Tentang', href: '/tentang' },
 ]

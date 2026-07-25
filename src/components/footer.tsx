@@ -3,8 +3,8 @@ import { Leaf, Github, Mail, Instagram, Twitter } from 'lucide-react'
 
 const footerLinks = [
   { label: 'Beranda', href: '/' },
-  { label: 'Deteksi Penyakit', href: '/deteksi' },
-  { label: 'Info Penyakit', href: '/informasi' },
+  { label: 'Deteksi', href: '/deteksi' },
+  { label: 'Informasi', href: '/informasi' },
   { label: 'Cara Kerja', href: '/cara-kerja' },
   { label: 'Tentang', href: '/tentang' },
 ]
