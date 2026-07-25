@@ -383,17 +383,31 @@ export default function DeteksiPage() {
                         <Upload className="w-7 h-7" style={{ color: PRIMARY }} />
                       </motion.div>
                       <p className="font-semibold text-sm mb-1" style={{ color: FG }}>Unggah Foto Daun</p>
-                      <p className="text-xs mb-3" style={{ color: MUTED }}>Seret gambar ke sini, atau pilih opsi di bawah</p>
+
+                      {/* Desktop: hint text */}
+                      <p className="text-xs mb-4 hidden md:block" style={{ color: MUTED }}>Seret gambar atau klik untuk memilih</p>
+                      {/* Mobile: hint text */}
+                      <p className="text-xs mb-3 block md:hidden" style={{ color: MUTED }}>Pilih sumber gambar</p>
+
                       <span className="inline-block px-3 py-1 rounded-full text-[10px] font-mono-data mb-4" style={{ backgroundColor: 'rgba(34,197,94,0.06)', color: MUTED, border: `1px solid ${BORDER}` }}>
                         JPG · PNG · WEBP · Max 10MB
                       </span>
 
-                      {/* Two explicit buttons for mobile */}
-                      <div className="flex gap-2 w-full">
+                      {/* ── DESKTOP: invisible overlay input (supports drag & drop + click) ── */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFile(e.target.files?.[0] || null)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer hidden md:block"
+                      />
+
+                      {/* ── MOBILE: two explicit buttons ── */}
+                      <div className="flex gap-2 w-full md:hidden">
                         <button
                           type="button"
                           onClick={() => cameraInputRef.current?.click()}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95"
                           style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: PRIMARY, border: `1px solid rgba(34,197,94,0.25)` }}
                         >
                           <Camera className="w-4 h-4" />
@@ -402,7 +416,7 @@ export default function DeteksiPage() {
                         <button
                           type="button"
                           onClick={() => galleryInputRef.current?.click()}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95"
                           style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: PRIMARY, border: `1px solid rgba(34,197,94,0.25)` }}
                         >
                           <Images className="w-4 h-4" />
@@ -410,8 +424,7 @@ export default function DeteksiPage() {
                         </button>
                       </div>
 
-                      {/* Hidden inputs — camera opens camera, gallery opens file picker */}
-                      <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
+                      {/* Hidden inputs for mobile buttons */}
                       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
                       <input ref={galleryInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.heic,.heif" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
                     </>
