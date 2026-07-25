@@ -19,9 +19,6 @@ backend/venv/
 **/__pycache__/
 *.pyc
 
-# Large ML models (GitHub limit is 100MB, warning at 50MB)
-backend/models/model_final_padi.h5
-backend/models/model_final_padi.keras
 
 # Build output
 dist/
