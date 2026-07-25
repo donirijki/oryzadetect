@@ -66,7 +66,10 @@ async def predict_disease(request: Request, file: UploadFile = File(...)):
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal memproses gambar: {str(e)}")
+        import traceback
+        tb = traceback.format_exc()
+        print(f"Error in predict: {tb}")
+        raise HTTPException(status_code=500, detail=f"Gagal memproses gambar: {str(e)}\n\nTraceback:\n{tb}")
 
 
 # ────────────────────────────────────────────
