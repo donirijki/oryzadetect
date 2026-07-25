@@ -11,6 +11,9 @@ export default defineConfig({
     },
   },
   build: {
+    // Output langsung ke backend/static agar FastAPI bisa serve frontend
+    outDir: 'backend/static',
+    emptyOutDir: true,
     // Suppress chunk size warning (bundle ~600KB is acceptable for this app)
     chunkSizeWarningLimit: 800,
     rollupOptions: {
