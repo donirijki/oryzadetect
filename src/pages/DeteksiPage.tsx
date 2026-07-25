@@ -413,7 +413,7 @@ export default function DeteksiPage() {
                       {/* Hidden inputs — camera opens camera, gallery opens file picker */}
                       <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
                       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
-                      <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
+                      <input ref={galleryInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.heic,.heif" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
                     </>
                   )}
                 </div>
