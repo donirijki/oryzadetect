@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload, Loader2, CheckCircle, AlertCircle,
-  Target, Beaker, Leaf, Shield,
+  Target, Beaker, Leaf, Shield, Camera, Images,
   RotateCcw, Download, Sparkles, ArrowRight, X, Eye
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,8 @@ export default function DeteksiPage() {
   const [formatError, setFormatError] = useState(false)
   const [showGradcam, setShowGradcam] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const previewUrlRef = useRef<string | null>(null)
   const { history, addScan, clearHistory, deleteItem } = useScanHistory()
 
@@ -381,12 +383,37 @@ export default function DeteksiPage() {
                         <Upload className="w-7 h-7" style={{ color: PRIMARY }} />
                       </motion.div>
                       <p className="font-semibold text-sm mb-1" style={{ color: FG }}>Unggah Foto Daun</p>
-                      <p className="text-xs mb-4" style={{ color: MUTED }}>Seret gambar atau klik untuk memilih</p>
-                      <span className="inline-block px-3 py-1 rounded-full text-[10px] font-mono-data" style={{ backgroundColor: 'rgba(34,197,94,0.06)', color: MUTED, border: `1px solid ${BORDER}` }}>
+                      <p className="text-xs mb-3" style={{ color: MUTED }}>Seret gambar ke sini, atau pilih opsi di bawah</p>
+                      <span className="inline-block px-3 py-1 rounded-full text-[10px] font-mono-data mb-4" style={{ backgroundColor: 'rgba(34,197,94,0.06)', color: MUTED, border: `1px solid ${BORDER}` }}>
                         JPG · PNG · WEBP · Max 10MB
                       </span>
 
-                      <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                      {/* Two explicit buttons for mobile */}
+                      <div className="flex gap-2 w-full">
+                        <button
+                          type="button"
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+                          style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: PRIMARY, border: `1px solid rgba(34,197,94,0.25)` }}
+                        >
+                          <Camera className="w-4 h-4" />
+                          Kamera
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => galleryInputRef.current?.click()}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+                          style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: PRIMARY, border: `1px solid rgba(34,197,94,0.25)` }}
+                        >
+                          <Images className="w-4 h-4" />
+                          Galeri
+                        </button>
+                      </div>
+
+                      {/* Hidden inputs — camera opens camera, gallery opens file picker */}
+                      <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
+                      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
+                      <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
                     </>
                   )}
                 </div>
