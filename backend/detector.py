@@ -321,6 +321,12 @@ def _build_model_from_weights(keras, weights_path: Path):
         input_shape=(224, 224, 3)
     )
 
+    # PENTING: Samakan status trainable dengan saat training.
+    # Jika tidak, urutan bobot (trainable vs non-trainable) saat load_weights .h5 
+    # akan berbeda dan menyebabkan ValueError (Shape mismatch).
+    for layer in base_model.layers[:11]:
+        layer.trainable = False
+
     inputs = keras.Input(shape=(224, 224, 3))
     x = base_model(inputs, training=False)
     x = layers.GlobalAveragePooling2D()(x)
