@@ -313,8 +313,9 @@ def load_model():
 def _build_model_from_weights(keras, weights_path: Path):
     """Fallback: rebuild arsitektur VGG16 + head dan load weights."""
     from keras import layers, models, regularizers
+    from tensorflow.keras.applications import VGG16
 
-    base_model = keras.applications.VGG16(
+    base_model = VGG16(
         include_top=False,
         weights=None,
         input_shape=(224, 224, 3)
