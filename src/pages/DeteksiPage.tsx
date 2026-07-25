@@ -386,7 +386,7 @@ export default function DeteksiPage() {
                         JPG · PNG · WEBP · Max 10MB
                       </span>
 
-                      <input ref={fileInputRef} type="file" capture="environment" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                      <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                     </>
                   )}
                 </div>
