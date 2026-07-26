@@ -188,7 +188,7 @@ export default function BerandaPage() {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="relative hidden lg:block"
+              className="relative mt-12 lg:mt-0"
             >
               {/* Glow behind */}
               <div className="absolute -inset-4 rounded-3xl blur-3xl" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }} />
