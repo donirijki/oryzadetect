@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+# Pastikan folder backend selalu ada di sys.path,
+# agar `detector` bisa diimport dari mana saja uvicorn dijalankan
+sys.path.insert(0, str(Path(__file__).parent))
+
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -6,7 +13,6 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 from detector import predict
-from pathlib import Path
 import uvicorn
 
 # ── Rate Limiter: max 10 request/menit per IP ──
