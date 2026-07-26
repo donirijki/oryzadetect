@@ -170,7 +170,7 @@ export default function InformasiPage() {
             Ensiklopedia
           </motion.div>
 
-          <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl font-bold mb-4"
+          <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl font-bold mb-4"
             style={{ fontFamily: 'var(--font-display)', color: FG }}>
             Informasi Penyakit Padi
           </motion.h1>

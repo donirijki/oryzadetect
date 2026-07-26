@@ -48,7 +48,7 @@ export default function TentangPage() {
           <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase mb-4" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: PRIMARY, border: `1px solid rgba(34,197,94,0.3)`, backdropFilter: 'blur(8px)' }}>
             Teknologi Pertanian · Artificial Intelligence
           </motion.div>
-          <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl font-bold mb-6" style={{ fontFamily: 'var(--font-display)', color: FG }}>
+          <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl font-bold mb-6" style={{ fontFamily: 'var(--font-display)', color: FG }}>
             Tentang OryzaDetect
           </motion.h1>
           <motion.p variants={fadeUp} className="text-lg leading-relaxed" style={{ color: 'rgba(232, 245, 236, 0.8)' }}>

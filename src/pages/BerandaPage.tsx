@@ -110,7 +110,7 @@ export default function BerandaPage() {
               {/* Heading */}
               <motion.h1
                 variants={fadeUp}
-                className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight mb-6"
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-6"
                 style={{ fontFamily: 'var(--font-display)', color: FG }}
               >
                 Deteksi Penyakit
@@ -198,7 +198,7 @@ export default function BerandaPage() {
                 transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
                 className="relative"
               >
-                <div className="relative aspect-[4/3] lg:aspect-square rounded-3xl overflow-hidden" style={{ border: `1px solid rgba(34,197,94,0.2)` }}>
+                <div className="relative aspect-[4/3] lg:aspect-[4/3] rounded-3xl overflow-hidden" style={{ border: `1px solid rgba(34,197,94,0.2)` }}>
                   <img
                     src="/images/rice-leaf-close.jpg"
                     alt="Daun padi close-up"
@@ -428,13 +428,11 @@ export default function BerandaPage() {
               className="relative"
             >
               <div className="absolute -inset-4 rounded-3xl blur-2xl" style={{ backgroundColor: 'rgba(34,197,94,0.06)' }} />
-              <div className="relative rounded-3xl overflow-hidden" style={{ border: `1px solid rgba(34,197,94,0.15)` }}>
+              <div className="relative rounded-3xl overflow-hidden aspect-[4/3]" style={{ border: `1px solid rgba(34,197,94,0.15)` }}>
                 <img
                   src="/images/farmer-smartphone.jpg"
                   alt="Petani menggunakan smartphone di sawah"
-                  width={700}
-                  height={500}
-                  className="object-cover w-full transition-transform duration-700 hover:scale-105"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                 />
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(2,8,4,0.5), transparent 60%)' }} />
               </div>
