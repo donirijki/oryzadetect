@@ -6,12 +6,7 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { stagger, fadeUp, scaleIn } from '@/lib/animations'
 
-const BG = '#020804'
-const SURFACE = '#0a1a0e'
-const BORDER = '#1a3520'
-const PRIMARY = '#22c55e'
-const MUTED = '#6b9c7a'
-const FG = '#e8f5ec'
+import { BG, SURFACE, BORDER, PRIMARY, MUTED, FG } from '@/lib/theme'
 
 const values = [
   { icon: Target, title: 'Akurasi', desc: 'Menggunakan model CNN VGG16 terlatih untuk memberikan diagnosa penyakit yang tepat dan dapat diandalkan sebagai referensi awal.' },

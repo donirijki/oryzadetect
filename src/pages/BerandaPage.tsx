@@ -11,12 +11,7 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { fadeUp, stagger, scaleIn } from '@/lib/animations'
 
-const BG = '#020804'
-const SURFACE = '#0a1a0e'
-const BORDER = '#1a3520'
-const PRIMARY = '#22c55e'
-const MUTED = '#6b9c7a'
-const FG = '#e8f5ec'
+import { BG, SURFACE, BORDER, PRIMARY, MUTED, FG } from '@/lib/theme'
 
 export default function BerandaPage() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })

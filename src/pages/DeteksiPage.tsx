@@ -15,12 +15,7 @@ import { getCategoryBadgeStyles, getSeverityBadgeStyles } from '@/lib/badge-styl
 import { useScanHistory } from '@/hooks/useScanHistory'
 import { toast } from 'sonner'
 
-const BG = '#020804'
-const SURFACE = '#0a1a0e'
-const BORDER = '#1a3520'
-const PRIMARY = '#22c55e'
-const MUTED = '#6b9c7a'
-const FG = '#e8f5ec'
+import { BG, SURFACE, BORDER, PRIMARY, MUTED, FG } from '@/lib/theme'
 
 type State = 'idle' | 'loading' | 'success' | 'error'
 
