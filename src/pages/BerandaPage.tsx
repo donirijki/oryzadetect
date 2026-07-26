@@ -110,7 +110,7 @@ export default function BerandaPage() {
               {/* Heading */}
               <motion.h1
                 variants={fadeUp}
-                className="text-5xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-6"
+                className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight mb-6"
                 style={{ fontFamily: 'var(--font-display)', color: FG }}
               >
                 Deteksi Penyakit
@@ -137,14 +137,14 @@ export default function BerandaPage() {
               </motion.p>
 
               {/* CTAs */}
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-4 mb-10">
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 mb-10">
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                   <Button
                     asChild
-                    className="rounded-full px-8 h-14 text-base font-bold glow"
+                    className="w-full rounded-full px-8 h-14 text-base font-bold glow"
                     style={{ backgroundColor: PRIMARY, color: BG }}
                   >
-                    <Link to="/deteksi" className="flex items-center gap-3">
+                    <Link to="/deteksi" className="flex items-center justify-center gap-3 w-full">
                       <ScanLine className="w-5 h-5" />
                       Mulai Deteksi
                       <motion.span
@@ -156,14 +156,14 @@ export default function BerandaPage() {
                     </Link>
                   </Button>
                 </motion.div>
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                   <Button
                     asChild
                     variant="outline"
-                    className="rounded-full px-8 h-14 text-base font-medium"
+                    className="w-full rounded-full px-8 h-14 text-base font-medium"
                     style={{ borderColor: 'rgba(34,197,94,0.4)', color: PRIMARY, backgroundColor: 'transparent' }}
                   >
-                    <Link to="/cara-kerja">Pelajari Cara Kerja</Link>
+                    <Link to="/cara-kerja" className="flex justify-center w-full">Pelajari Cara Kerja</Link>
                   </Button>
                 </motion.div>
               </motion.div>
@@ -198,7 +198,7 @@ export default function BerandaPage() {
                 transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
                 className="relative"
               >
-                <div className="relative aspect-square rounded-3xl overflow-hidden" style={{ border: `1px solid rgba(34,197,94,0.2)` }}>
+                <div className="relative aspect-[4/3] lg:aspect-square rounded-3xl overflow-hidden" style={{ border: `1px solid rgba(34,197,94,0.2)` }}>
                   <img
                     src="/images/rice-leaf-close.jpg"
                     alt="Daun padi close-up"
@@ -213,7 +213,7 @@ export default function BerandaPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.9 }}
-                  className="absolute -left-8 top-1/4 glass rounded-2xl p-4 max-w-[180px]"
+                  className="absolute -left-2 sm:-left-8 top-1/4 glass rounded-2xl p-3 sm:p-4 max-w-[140px] sm:max-w-[180px] z-10"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}>
@@ -230,7 +230,7 @@ export default function BerandaPage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.1 }}
-                  className="absolute -right-8 bottom-1/4 glass rounded-2xl p-4 max-w-[180px]"
+                  className="absolute -right-2 sm:-right-8 bottom-1/4 glass rounded-2xl p-3 sm:p-4 max-w-[140px] sm:max-w-[180px] z-10"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}>
