@@ -90,7 +90,7 @@ export default function BerandaPage() {
 
         {/* Content */}
         <div className="relative max-w-7xl mx-auto w-full">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
 
             {/* Left */}
             <motion.div initial="hidden" animate="visible" variants={stagger}>
@@ -137,7 +137,7 @@ export default function BerandaPage() {
               </motion.p>
 
               {/* CTAs */}
-              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 mb-10">
+              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4 mb-8 lg:mb-10">
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                   <Button
                     asChild
@@ -188,7 +188,7 @@ export default function BerandaPage() {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="relative mt-12 lg:mt-0"
+              className="relative mt-2 lg:mt-0"
             >
               {/* Glow behind */}
               <div className="absolute -inset-4 rounded-3xl blur-3xl" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }} />
