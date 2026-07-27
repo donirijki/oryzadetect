@@ -622,18 +622,19 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
     s = hsv[:, :, 1]
     v = hsv[:, :, 2]
     
-    # Hue: 0.12 (Kuning/Keemasan) hingga 0.45 (Hijau)
-    valid_hue = tf.logical_and(h >= 0.12, h <= 0.45)
-    valid_sat = s >= 0.15
-    valid_val = v >= 0.15
+    # Hue: 0.15 (Kuning-Hijau) hingga 0.45 (Hijau)
+    # Ini akan secara tegas menolak warna kulit (0-0.10), kayu/coklat (0.05-0.12), dan warna lain.
+    valid_hue = tf.logical_and(h >= 0.15, h <= 0.45)
+    valid_sat = s >= 0.20
+    valid_val = v >= 0.20
     
     is_leaf_color = tf.logical_and(valid_hue, tf.logical_and(valid_sat, valid_val))
     leaf_ratio = float(tf.reduce_mean(tf.cast(is_leaf_color, tf.float32)).numpy())
     
-    print(f"[OOD Check] Green/Yellow pixel ratio: {leaf_ratio:.2%}")
+    print(f"[OOD Check] Strict Green/Yellow pixel ratio: {leaf_ratio:.2%}")
     
-    # Jika kurang dari 1% gambar adalah warna kuning/hijau, tolak.
-    return leaf_ratio < 0.01
+    # Jika kurang dari 5% gambar adalah warna kuning/hijau alami daun, tolak.
+    return leaf_ratio < 0.05
 
 
 def predict(image_bytes: bytes) -> dict:
