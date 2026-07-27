@@ -611,99 +611,111 @@ def _apply_jet_colormap(gray: np.ndarray) -> np.ndarray:
     return colormap.astype(np.uint8)
 
 
-def _compute_leaf_ratio(h_chan, s_chan, v_chan):
-    """Helper: hitung rasio piksel warna daun (hijau + coklat penyakit) dari channel HSV."""
+def _crop_center(img, frac):
+    """Crop bagian tengah gambar sebesar `frac` dari dimensi total (0.0–1.0)."""
+    H, W = img.shape[0], img.shape[1]
+    mh = int(H * (1 - frac) / 2)
+    mw = int(W * (1 - frac) / 2)
+    return img[mh:H - mh, mw:W - mw, :]
+
+
+def _leaf_score(img_region):
+    """
+    Hitung skor warna daun padi dari suatu region gambar (tensor HxWx3, nilai 0–1).
+    Return (green_ratio, brown_ratio, leaf_score, neutral_ratio, skin_ratio).
+    """
     import tensorflow as tf
-    # Hijau/kuning-hijau khas daun sehat
-    green_hue  = tf.logical_and(h_chan >= 0.15, h_chan <= 0.42)
-    green_sat  = s_chan >= 0.18
-    green_val  = v_chan >= 0.15
-    green_mask = tf.logical_and(green_hue, tf.logical_and(green_sat, green_val))
-    green_r    = float(tf.reduce_mean(tf.cast(green_mask, tf.float32)).numpy())
+    hsv = tf.image.rgb_to_hsv(img_region)
+    h = hsv[:, :, 0]
+    s = hsv[:, :, 1]
+    v = hsv[:, :, 2]
 
-    # Kuning-coklat khas penyakit daun
-    brown_hue  = tf.logical_and(h_chan >= 0.04, h_chan <= 0.18)
-    brown_sat  = tf.logical_and(s_chan >= 0.20, s_chan <= 0.80)
-    brown_val  = tf.logical_and(v_chan >= 0.20, v_chan <= 0.90)
-    brown_mask = tf.logical_and(brown_hue, tf.logical_and(brown_sat, brown_val))
-    brown_r    = float(tf.reduce_mean(tf.cast(brown_mask, tf.float32)).numpy())
+    # Hijau daun sehat (hue 0.15–0.42)
+    gm = tf.logical_and(tf.logical_and(h >= 0.15, h <= 0.42),
+                        tf.logical_and(s >= 0.18, v >= 0.12))
+    green_r = float(tf.reduce_mean(tf.cast(gm, tf.float32)).numpy())
 
-    return green_r, brown_r
+    # Coklat/kuning khas penyakit (hue 0.04–0.18)
+    bm = tf.logical_and(tf.logical_and(h >= 0.04, h <= 0.18),
+                        tf.logical_and(s >= 0.18, tf.logical_and(v >= 0.15, v <= 0.92)))
+    brown_r = float(tf.reduce_mean(tf.cast(bm, tf.float32)).numpy())
+
+    # Warna netral/pakaian (saturasi sangat rendah = putih/abu/hitam = baju/bangunan)
+    neutral_m = s < 0.12
+    neutral_r = float(tf.reduce_mean(tf.cast(neutral_m, tf.float32)).numpy())
+
+    # Kulit manusia (hue 0–0.09 atau 0.93–1, sat sedang, terang)
+    skin_h = tf.logical_or(h <= 0.09, h >= 0.93)
+    skin_m = tf.logical_and(skin_h, tf.logical_and(s >= 0.10, tf.logical_and(s <= 0.70, v >= 0.25)))
+    skin_r = float(tf.reduce_mean(tf.cast(skin_m, tf.float32)).numpy())
+
+    score = green_r + (brown_r * 0.7)
+    return green_r, brown_r, score, neutral_r, skin_r
 
 
 def is_ood_image(arr_rgb: np.ndarray) -> bool:
     """
-    Filter multi-lapis untuk mendeteksi gambar yang BUKAN foto daun padi.
+    Filter 3-level concentric crop untuk mendeteksi gambar yang BUKAN daun padi.
 
-    Layer 1 – Analisis SELURUH gambar (HSV warna daun)
-    Layer 2 – Analisis CENTER CROP 50% tengah gambar
-      Kunci utama: Untuk foto daun padi yang benar, bagian TENGAH gambar
-      harus didominasi warna daun. Untuk selfie/foto orang/benda, bagian
-      tengah berisi kulit/pakaian/objek — bukan hijau/kuning daun.
-    Layer 3 – Deteksi kulit manusia
-    Layer 4 – Tolak gambar flat/grayscale
+    Ide utama:
+      - Foto daun padi yang benar → warna daun mendominasi SELURUH frame, termasuk
+        bagian paling tengah gambar.
+      - Foto orang/benda di luar ruangan → bagian paling tengah gambar berisi
+        wajah/baju/objek, bukan daun. Pohon di background hanya ada di pinggir.
 
-    Return True (OOD / bukan daun padi) jika gambar tidak memenuhi syarat.
+    3 zona yang dianalisis secara bersamaan:
+      ① INTI (center 20%): zona paling ketat. Untuk orang → wajah/baju. Untuk daun → hijau.
+      ② TENGAH (center 50%): zona menengah.
+      ③ PENUH (100%): seluruh gambar.
+
+    Ketiganya harus memenuhi syarat warna daun minimum untuk diterima.
     """
+    img = arr_rgb[0]  # (224,224,3) nilai 0–1
+
+    # Hitung skor per zona
+    g_full,  br_full,  score_full,  neutral_full,  skin_full  = _leaf_score(img)
+    g_mid,   br_mid,   score_mid,   neutral_mid,   skin_mid   = _leaf_score(_crop_center(img, 0.50))
+    g_core,  br_core,  score_core,  neutral_core,  skin_core  = _leaf_score(_crop_center(img, 0.20))
+
     import tensorflow as tf
-
-    img = arr_rgb[0]  # (224, 224, 3), nilai [0,1]
-    H, W = img.shape[0], img.shape[1]
-
-    # ── Analisis SELURUH gambar ──
     hsv_full = tf.image.rgb_to_hsv(img)
-    h_full   = hsv_full[:, :, 0]
-    s_full   = hsv_full[:, :, 1]
-    v_full   = hsv_full[:, :, 2]
-
-    green_full, brown_full = _compute_leaf_ratio(h_full, s_full, v_full)
-    leaf_ratio_full = green_full + (brown_full * 0.6)
-    mean_sat = float(tf.reduce_mean(s_full).numpy())
-
-    # ── Analisis CENTER CROP (50% tengah: baris 56–168, kolom 56–168 dari 224×224) ──
-    margin_h = int(H * 0.25)
-    margin_w = int(W * 0.25)
-    img_center = img[margin_h:H - margin_h, margin_w:W - margin_w, :]
-    hsv_center = tf.image.rgb_to_hsv(img_center)
-    h_ctr = hsv_center[:, :, 0]
-    s_ctr = hsv_center[:, :, 1]
-    v_ctr = hsv_center[:, :, 2]
-
-    green_ctr, brown_ctr = _compute_leaf_ratio(h_ctr, s_ctr, v_ctr)
-    leaf_ratio_center = green_ctr + (brown_ctr * 0.6)
-
-    # ── Deteksi kulit manusia (seluruh gambar) ──
-    skin_hue   = tf.logical_or(h_full <= 0.08, h_full >= 0.95)
-    skin_sat   = tf.logical_and(s_full >= 0.12, s_full <= 0.68)
-    skin_val   = v_full >= 0.25
-    skin_mask  = tf.logical_and(skin_hue, tf.logical_and(skin_sat, skin_val))
-    skin_ratio = float(tf.reduce_mean(tf.cast(skin_mask, tf.float32)).numpy())
+    mean_sat = float(tf.reduce_mean(hsv_full[:, :, 1]).numpy())
 
     print(
-        f"[OOD Check] full_leaf={leaf_ratio_full:.2%} | center_leaf={leaf_ratio_center:.2%} | "
-        f"mean_sat={mean_sat:.2f} | skin={skin_ratio:.2%}"
+        f"[OOD Check] full={score_full:.2%} | mid50={score_mid:.2%} | core20={score_core:.2%} | "
+        f"neutral_core={neutral_core:.2%} | skin_full={skin_full:.2%} | mean_sat={mean_sat:.2f}"
     )
 
-    # ── Keputusan ──
-    # Tolak jika dominasi kulit (selfie/wajah)
-    if skin_ratio > 0.22:
-        print(f"[OOD Check] REJECTED – dominasi warna kulit ({skin_ratio:.2%} > 22%)")
+    # ── Gate 1: Deteksi kulit manusia di seluruh gambar ──
+    if skin_full > 0.15:
+        print(f"[OOD Check] REJECTED – terlalu banyak warna kulit ({skin_full:.2%} > 15%)")
         return True
 
-    # Tolak jika gambar flat/grayscale
+    # ── Gate 2: Gambar terlalu flat/grayscale (kertas, screenshot, dll.) ──
     if mean_sat < 0.08:
         print(f"[OOD Check] REJECTED – gambar terlalu flat/grayscale")
         return True
 
-    # Tolak jika BAGIAN TENGAH tidak cukup berwarna daun
-    # Ini menolak foto yang ada pohon di background tapi orangnya di tengah
-    if leaf_ratio_center < 0.12:
-        print(f"[OOD Check] REJECTED – center crop kurang warna daun ({leaf_ratio_center:.2%} < 12%)")
+    # ── Gate 3: INTI gambar (20%) harus punya warna daun ──
+    # Foto orang → inti = wajah/baju → warna netral/kulit, bukan hijau
+    # Foto daun  → inti = daun itu sendiri → hijau/coklat penyakit
+    if score_core < 0.15:
+        print(f"[OOD Check] REJECTED – inti gambar (20%) bukan warna daun ({score_core:.2%} < 15%)")
         return True
 
-    # Tolak jika KESELURUHAN gambar juga sangat sedikit warna daun
-    if leaf_ratio_full < 0.10:
-        print(f"[OOD Check] REJECTED – keseluruhan gambar kurang warna daun ({leaf_ratio_full:.2%} < 10%)")
+    # ── Gate 4: Inti didominasi warna netral/pakaian/bangunan ──
+    if neutral_core > 0.55 and score_core < 0.20:
+        print(f"[OOD Check] REJECTED – inti didominasi warna netral/pakaian ({neutral_core:.2%})")
+        return True
+
+    # ── Gate 5: Zona TENGAH (50%) ──
+    if score_mid < 0.12:
+        print(f"[OOD Check] REJECTED – zona tengah (50%) kurang warna daun ({score_mid:.2%} < 12%)")
+        return True
+
+    # ── Gate 6: Keseluruhan gambar ──
+    if score_full < 0.10:
+        print(f"[OOD Check] REJECTED – keseluruhan gambar kurang warna daun ({score_full:.2%} < 10%)")
         return True
 
     print(f"[OOD Check] PASSED – terdeteksi sebagai foto daun padi")
