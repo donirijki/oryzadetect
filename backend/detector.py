@@ -744,6 +744,20 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         f"center_g={center_green:.2%} | edge_g={edge_green:.2%} | uniformity={green_uniformity:.2f}"
     )
 
+    # ── Gate 0 (PALING KUAT - Zero Tolerance): Center green absolut ──
+    # Daun padi close-up: center_green >= 40-70% (tengah gambar = daun itu sendiri)
+    # Kucing/hewan outdoor: center_green = 2-10% (tengah = badan hewan)
+    # Data nyata dari debug: cat=4.17%, rice_leaf=~50%+
+    if center_green < 0.25:
+        print(f"[OOD Check] REJECTED – Gate 0: hijau di tengah gambar terlalu rendah ({center_green:.2%} < 25%)")
+        return True
+
+    # ── Gate 0b: Hijau murni keseluruhan harus cukup ──
+    # Foto non-daun bahkan yang outdoor bisa punya g_full rendah
+    if g_full < 0.25:
+        print(f"[OOD Check] REJECTED – Gate 0b: total hijau murni seluruh gambar terlalu rendah ({g_full:.2%} < 25%)")
+        return True
+
     # ── Gate 1: Deteksi kulit manusia ──
     if skin_full > 0.15:
         print(f"[OOD Check] REJECTED – terlalu banyak warna kulit ({skin_full:.2%} > 15%)")
@@ -759,10 +773,11 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         print(f"[OOD Check] REJECTED – inti (20%) bukan warna daun ({score_core:.2%} < 25%)")
         return True
 
-    # ── Gate 3b: INTI harus ada HIJAU murni (bukan cuma coklat/kuning) ──
+    # ── Gate 3b: INTI harus ada HIJAU murni (naik 15% → 20%) ──
     # Kritis untuk menangkap bulu hewan berwarna coklat yang mirip "brown leaf disease"
-    if g_core < 0.15:
-        print(f"[OOD Check] REJECTED – inti (20%) kurang hijau murni ({g_core:.2%} < 15%)")
+    # Data nyata: cat_core=0%, rice_leaf_core=~40%+
+    if g_core < 0.20:
+        print(f"[OOD Check] REJECTED – inti (20%) kurang hijau murni ({g_core:.2%} < 20%)")
         return True
 
     # ── Gate 4: Inti didominasi warna netral/bangunan/pakaian ──
@@ -775,9 +790,10 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         print(f"[OOD Check] REJECTED – zona tengah (50%) kurang warna daun ({score_mid:.2%} < 20%)")
         return True
 
-    # ── Gate 5b: TENGAH harus ada HIJAU murni ──
-    if g_mid < 0.12:
-        print(f"[OOD Check] REJECTED – zona tengah (50%) kurang hijau murni ({g_mid:.2%} < 12%)")
+    # ── Gate 5b: TENGAH harus ada HIJAU murni (naik 12% → 18%) ──
+    # Data nyata: cat_mid=5.29%, rice_leaf_mid=~40%+
+    if g_mid < 0.18:
+        print(f"[OOD Check] REJECTED – zona tengah (50%) kurang hijau murni ({g_mid:.2%} < 18%)")
         return True
 
     # ── Gate 6: Keseluruhan gambar ──
