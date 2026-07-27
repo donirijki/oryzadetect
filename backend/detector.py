@@ -611,87 +611,99 @@ def _apply_jet_colormap(gray: np.ndarray) -> np.ndarray:
     return colormap.astype(np.uint8)
 
 
+def _compute_leaf_ratio(h_chan, s_chan, v_chan):
+    """Helper: hitung rasio piksel warna daun (hijau + coklat penyakit) dari channel HSV."""
+    import tensorflow as tf
+    # Hijau/kuning-hijau khas daun sehat
+    green_hue  = tf.logical_and(h_chan >= 0.15, h_chan <= 0.42)
+    green_sat  = s_chan >= 0.18
+    green_val  = v_chan >= 0.15
+    green_mask = tf.logical_and(green_hue, tf.logical_and(green_sat, green_val))
+    green_r    = float(tf.reduce_mean(tf.cast(green_mask, tf.float32)).numpy())
+
+    # Kuning-coklat khas penyakit daun
+    brown_hue  = tf.logical_and(h_chan >= 0.04, h_chan <= 0.18)
+    brown_sat  = tf.logical_and(s_chan >= 0.20, s_chan <= 0.80)
+    brown_val  = tf.logical_and(v_chan >= 0.20, v_chan <= 0.90)
+    brown_mask = tf.logical_and(brown_hue, tf.logical_and(brown_sat, brown_val))
+    brown_r    = float(tf.reduce_mean(tf.cast(brown_mask, tf.float32)).numpy())
+
+    return green_r, brown_r
+
+
 def is_ood_image(arr_rgb: np.ndarray) -> bool:
     """
     Filter multi-lapis untuk mendeteksi gambar yang BUKAN foto daun padi.
-    
-    Layer 1 – Cek warna HSV:
-      Mengukur persentase piksel yang termasuk rentang warna daun padi (hijau/kuning-hijau/kuning
-      kecoklatan akibat penyakit). Gambar non-daun (wajah, furniture, objek lain) akan gagal di
-      layer ini karena tidak memiliki warna tersebut dalam jumlah cukup.
-    
-    Layer 2 – Cek saturasi minimum keseluruhan:
-      Gambar yang terlalu monokromatik / putih / hitam polos bukan foto daun nyata.
 
-    Layer 3 – Toleransi warna coklat penyakit:
-      Beberapa penyakit daun menghasilkan daun yang hampir 100% coklat/kuning pucat.
-      Layer ini memberi bonus jika ditemukan warna coklat-kuning khas penyakit (hue 0.05–0.18)
-      dengan saturasi sedang.
+    Layer 1 – Analisis SELURUH gambar (HSV warna daun)
+    Layer 2 – Analisis CENTER CROP 50% tengah gambar
+      Kunci utama: Untuk foto daun padi yang benar, bagian TENGAH gambar
+      harus didominasi warna daun. Untuk selfie/foto orang/benda, bagian
+      tengah berisi kulit/pakaian/objek — bukan hijau/kuning daun.
+    Layer 3 – Deteksi kulit manusia
+    Layer 4 – Tolak gambar flat/grayscale
 
-    Return True (OOD / bukan daun padi) jika gambar tidak memenuhi syarat apapun.
+    Return True (OOD / bukan daun padi) jika gambar tidak memenuhi syarat.
     """
     import tensorflow as tf
 
-    img = arr_rgb[0]  # shape (224, 224, 3), nilai [0, 1]
-    hsv = tf.image.rgb_to_hsv(img)
-    h = hsv[:, :, 0]  # Hue  [0, 1]
-    s = hsv[:, :, 1]  # Saturation [0, 1]
-    v = hsv[:, :, 2]  # Value [0, 1]
+    img = arr_rgb[0]  # (224, 224, 3), nilai [0,1]
+    H, W = img.shape[0], img.shape[1]
 
-    # ── Layer 1: Warna hijau/kuning-hijau khas daun sehat ──
-    # Hue 0.15–0.42 ≈ kuning-hijau hingga hijau tua
-    green_hue   = tf.logical_and(h >= 0.15, h <= 0.42)
-    green_sat   = s >= 0.18
-    green_val   = v >= 0.15
-    green_mask  = tf.logical_and(green_hue, tf.logical_and(green_sat, green_val))
-    green_ratio = float(tf.reduce_mean(tf.cast(green_mask, tf.float32)).numpy())
+    # ── Analisis SELURUH gambar ──
+    hsv_full = tf.image.rgb_to_hsv(img)
+    h_full   = hsv_full[:, :, 0]
+    s_full   = hsv_full[:, :, 1]
+    v_full   = hsv_full[:, :, 2]
 
-    # ── Layer 3: Warna kuning-coklat khas daun sakit/layu ──
-    # Hue 0.04–0.18 ≈ kuning-oranye-kecoklatan (Brown Spot, Leaf Blast, Sheath Blight)
-    brown_hue   = tf.logical_and(h >= 0.04, h <= 0.18)
-    brown_sat   = tf.logical_and(s >= 0.20, s <= 0.80)
-    brown_val   = tf.logical_and(v >= 0.20, v <= 0.90)
-    brown_mask  = tf.logical_and(brown_hue, tf.logical_and(brown_sat, brown_val))
-    brown_ratio = float(tf.reduce_mean(tf.cast(brown_mask, tf.float32)).numpy())
+    green_full, brown_full = _compute_leaf_ratio(h_full, s_full, v_full)
+    leaf_ratio_full = green_full + (brown_full * 0.6)
+    mean_sat = float(tf.reduce_mean(s_full).numpy())
 
-    # ── Layer 2: Saturasi keseluruhan – tolak gambar terlalu "flat" / grayscale ──
-    mean_sat = float(tf.reduce_mean(s).numpy())
+    # ── Analisis CENTER CROP (50% tengah: baris 56–168, kolom 56–168 dari 224×224) ──
+    margin_h = int(H * 0.25)
+    margin_w = int(W * 0.25)
+    img_center = img[margin_h:H - margin_h, margin_w:W - margin_w, :]
+    hsv_center = tf.image.rgb_to_hsv(img_center)
+    h_ctr = hsv_center[:, :, 0]
+    s_ctr = hsv_center[:, :, 1]
+    v_ctr = hsv_center[:, :, 2]
 
-    # ── Layer 4: Dominasi warna kulit manusia ──
-    # Wajah/kulit punya hue 0.0–0.08 (merah-oranye) + saturasi sedang
-    skin_hue    = tf.logical_or(h <= 0.08, h >= 0.95)   # merah / merah-oranye
-    skin_sat    = tf.logical_and(s >= 0.15, s <= 0.65)
-    skin_val    = v >= 0.25
-    skin_mask   = tf.logical_and(skin_hue, tf.logical_and(skin_sat, skin_val))
-    skin_ratio  = float(tf.reduce_mean(tf.cast(skin_mask, tf.float32)).numpy())
+    green_ctr, brown_ctr = _compute_leaf_ratio(h_ctr, s_ctr, v_ctr)
+    leaf_ratio_center = green_ctr + (brown_ctr * 0.6)
 
-    # ── Gabungkan sinyal warna daun ──
-    leaf_ratio = green_ratio + (brown_ratio * 0.6)  # coklat daun dihitung 60%
+    # ── Deteksi kulit manusia (seluruh gambar) ──
+    skin_hue   = tf.logical_or(h_full <= 0.08, h_full >= 0.95)
+    skin_sat   = tf.logical_and(s_full >= 0.12, s_full <= 0.68)
+    skin_val   = v_full >= 0.25
+    skin_mask  = tf.logical_and(skin_hue, tf.logical_and(skin_sat, skin_val))
+    skin_ratio = float(tf.reduce_mean(tf.cast(skin_mask, tf.float32)).numpy())
 
     print(
-        f"[OOD Check] green={green_ratio:.2%} | brown={brown_ratio:.2%} | "
-        f"leaf_combined={leaf_ratio:.2%} | mean_sat={mean_sat:.2f} | skin={skin_ratio:.2%}"
+        f"[OOD Check] full_leaf={leaf_ratio_full:.2%} | center_leaf={leaf_ratio_center:.2%} | "
+        f"mean_sat={mean_sat:.2f} | skin={skin_ratio:.2%}"
     )
 
-    # ── Keputusan OOD ──
-    # Tolak jika:
-    # (a) Warna daun gabungan terlalu sedikit (< 8%), DAN
-    # (b) Saturasi rata-rata terlalu rendah (gambar abu-abu / putih polos), ATAU
-    # (c) Dominasi warna kulit manusia yang sangat kuat
-    is_too_low_leaf   = leaf_ratio < 0.08
-    is_flat_image     = mean_sat < 0.08
-    is_skin_dominant  = skin_ratio > 0.35  # >35% piksel bernuansa kulit
-
-    if is_skin_dominant:
-        print(f"[OOD Check] REJECTED – dominasi warna kulit manusia ({skin_ratio:.2%})")
+    # ── Keputusan ──
+    # Tolak jika dominasi kulit (selfie/wajah)
+    if skin_ratio > 0.22:
+        print(f"[OOD Check] REJECTED – dominasi warna kulit ({skin_ratio:.2%} > 22%)")
         return True
 
-    if is_flat_image:
-        print(f"[OOD Check] REJECTED – gambar terlalu flat/grayscale (mean_sat={mean_sat:.2f})")
+    # Tolak jika gambar flat/grayscale
+    if mean_sat < 0.08:
+        print(f"[OOD Check] REJECTED – gambar terlalu flat/grayscale")
         return True
 
-    if is_too_low_leaf:
-        print(f"[OOD Check] REJECTED – warna daun tidak cukup ({leaf_ratio:.2%} < 8%)")
+    # Tolak jika BAGIAN TENGAH tidak cukup berwarna daun
+    # Ini menolak foto yang ada pohon di background tapi orangnya di tengah
+    if leaf_ratio_center < 0.12:
+        print(f"[OOD Check] REJECTED – center crop kurang warna daun ({leaf_ratio_center:.2%} < 12%)")
+        return True
+
+    # Tolak jika KESELURUHAN gambar juga sangat sedikit warna daun
+    if leaf_ratio_full < 0.10:
+        print(f"[OOD Check] REJECTED – keseluruhan gambar kurang warna daun ({leaf_ratio_full:.2%} < 10%)")
         return True
 
     print(f"[OOD Check] PASSED – terdeteksi sebagai foto daun padi")
