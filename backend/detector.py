@@ -839,7 +839,7 @@ def predict(image_bytes: bytes) -> dict:
     
     # Cek OOD dengan heuristic warna daun sebelum lanjut prediksi
     if is_ood_image(arr):
-        raise ValueError("[v2.4-OOD-SPATIAL] Sepertinya ini bukan foto daun padi (tidak ada unsur warna daun yang terdeteksi). Silakan unggah gambar yang sesuai.")
+        raise ValueError("Sepertinya ini bukan foto daun padi (tidak ada unsur warna daun yang terdeteksi). Silakan unggah gambar yang sesuai.")
 
     probs = model.predict(arr, verbose=0)[0]  # Shape: (8,)
 
