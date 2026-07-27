@@ -4,7 +4,7 @@ export interface DetectionResult {
   disease: string
   nameIndo: string
   nameLatin: string
-  category: "Bakteri" | "Jamur" | "Virus" | "Sehat" | "Hama" | "Tidak Dikenali"
+  category: "Bakteri" | "Jamur" | "Virus" | "Sehat" | "Hama"
   severity: "Tinggi" | "Sedang" | "Rendah" | null
   confidence: number
   top3: { name: string; confidence: number }[]

@@ -1,7 +1,7 @@
 // lib/badge-styles.ts
 // Utility untuk styling badge kategori dan severity penyakit
 
-export type DiseaseCategory = 'Bakteri' | 'Jamur' | 'Virus' | 'Sehat' | 'Hama' | 'Tidak Dikenali'
+export type DiseaseCategory = 'Bakteri' | 'Jamur' | 'Virus' | 'Sehat' | 'Hama'
 export type DiseaseSeverity = 'Tinggi' | 'Sedang' | 'Rendah' | null
 
 export function getCategoryBadgeStyles(category: DiseaseCategory) {
@@ -16,8 +16,6 @@ export function getCategoryBadgeStyles(category: DiseaseCategory) {
       return { bg: 'bg-[#22c55e]/15', text: 'text-[#22c55e]', border: 'border-[#22c55e]/30' }
     case 'Hama':
       return { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/30' }
-    case 'Tidak Dikenali':
-      return { bg: 'bg-gray-500/15', text: 'text-gray-400', border: 'border-gray-500/30' }
   }
 }
 
