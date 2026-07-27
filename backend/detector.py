@@ -611,6 +611,31 @@ def _apply_jet_colormap(gray: np.ndarray) -> np.ndarray:
     return colormap.astype(np.uint8)
 
 
+def is_ood_image(arr_rgb: np.ndarray) -> bool:
+    """
+    Heuristic warna HSV untuk mendeteksi apakah gambar TIDAK memiliki unsur warna daun.
+    Mengecek ketersediaan warna Kuning-Hijau. Jika sangat sedikit (< 1%), dianggap OOD.
+    """
+    import tensorflow as tf
+    hsv = tf.image.rgb_to_hsv(arr_rgb[0])
+    h = hsv[:, :, 0]
+    s = hsv[:, :, 1]
+    v = hsv[:, :, 2]
+    
+    # Hue: 0.12 (Kuning/Keemasan) hingga 0.45 (Hijau)
+    valid_hue = tf.logical_and(h >= 0.12, h <= 0.45)
+    valid_sat = s >= 0.15
+    valid_val = v >= 0.15
+    
+    is_leaf_color = tf.logical_and(valid_hue, tf.logical_and(valid_sat, valid_val))
+    leaf_ratio = float(tf.reduce_mean(tf.cast(is_leaf_color, tf.float32)).numpy())
+    
+    print(f"[OOD Check] Green/Yellow pixel ratio: {leaf_ratio:.2%}")
+    
+    # Jika kurang dari 1% gambar adalah warna kuning/hijau, tolak.
+    return leaf_ratio < 0.01
+
+
 def predict(image_bytes: bytes) -> dict:
     """
     Jalankan inferensi model + Grad-CAM dan kembalikan hasil lengkap.
@@ -618,6 +643,10 @@ def predict(image_bytes: bytes) -> dict:
     """
     model = load_model()
     arr = preprocess_image(image_bytes)
+    
+    # Cek OOD dengan heuristic warna daun sebelum lanjut prediksi
+    if is_ood_image(arr):
+        raise ValueError("Sepertinya ini bukan foto daun padi (tidak ada unsur warna daun yang terdeteksi). Silakan unggah gambar yang sesuai.")
 
     probs = model.predict(arr, verbose=0)[0]  # Shape: (8,)
 
@@ -627,10 +656,6 @@ def predict(image_bytes: bytes) -> dict:
 
     # Log ringkas ke server (tidak membanjiri stdout)
     print(f"[predict] {pred_class} ({confidence}%)")
-
-    # Threshold for OOD (Out-of-Distribution) detection
-    if confidence < 60.0:
-        raise ValueError("Sepertinya ini bukan foto daun padi. Silakan unggah gambar yang sesuai dengan objek yang dianalisis.")
 
     # Top-3 prediksi
     top3_indices = np.argsort(probs)[::-1][:3]
