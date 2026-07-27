@@ -744,20 +744,6 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         f"center_g={center_green:.2%} | edge_g={edge_green:.2%} | uniformity={green_uniformity:.2f}"
     )
 
-    # ── Gate 0 (PALING KUAT - Zero Tolerance): Center green absolut ──
-    # Daun padi close-up: center_green >= 40-70% (tengah gambar = daun itu sendiri)
-    # Kucing/hewan outdoor: center_green = 2-10% (tengah = badan hewan)
-    # Data nyata dari debug: cat=4.17%, rice_leaf=~50%+
-    if center_green < 0.25:
-        print(f"[OOD Check] REJECTED – Gate 0: hijau di tengah gambar terlalu rendah ({center_green:.2%} < 25%)")
-        return True
-
-    # ── Gate 0b: Hijau murni keseluruhan harus cukup ──
-    # Foto non-daun bahkan yang outdoor bisa punya g_full rendah
-    if g_full < 0.25:
-        print(f"[OOD Check] REJECTED – Gate 0b: total hijau murni seluruh gambar terlalu rendah ({g_full:.2%} < 25%)")
-        return True
-
     # ── Gate 1: Deteksi kulit manusia ──
     if skin_full > 0.15:
         print(f"[OOD Check] REJECTED – terlalu banyak warna kulit ({skin_full:.2%} > 15%)")
@@ -768,32 +754,21 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         print(f"[OOD Check] REJECTED – gambar terlalu flat/grayscale")
         return True
 
-    # ── Gate 3: INTI (20%) harus ada warna daun yang cukup (naik 15% → 25%) ──
+    # ── Gate 3: INTI (20%) harus ada warna daun (hijau + coklat penyakit) ──
+    # Daun penyakit parah: score_core bisa tinggi dari warna coklat/kuning penyakit
+    # Kucing: score_core = ~20% (bulu orange terhitung coklat), jadi threshold 25% cukup ketat
     if score_core < 0.25:
         print(f"[OOD Check] REJECTED – inti (20%) bukan warna daun ({score_core:.2%} < 25%)")
         return True
 
-    # ── Gate 3b: INTI harus ada HIJAU murni (naik 15% → 20%) ──
-    # Kritis untuk menangkap bulu hewan berwarna coklat yang mirip "brown leaf disease"
-    # Data nyata: cat_core=0%, rice_leaf_core=~40%+
-    if g_core < 0.20:
-        print(f"[OOD Check] REJECTED – inti (20%) kurang hijau murni ({g_core:.2%} < 20%)")
-        return True
-
-    # ── Gate 4: Inti didominasi warna netral/bangunan/pakaian ──
-    if neutral_core > 0.55 and score_core < 0.25:
+    # ── Gate 4: Inti didominasi warna netral ──
+    if neutral_core > 0.55 and score_core < 0.30:
         print(f"[OOD Check] REJECTED – inti didominasi warna netral ({neutral_core:.2%})")
         return True
 
-    # ── Gate 5: TENGAH (50%) harus ada warna daun (naik 12% → 20%) ──
+    # ── Gate 5: TENGAH (50%) harus ada warna daun ──
     if score_mid < 0.20:
         print(f"[OOD Check] REJECTED – zona tengah (50%) kurang warna daun ({score_mid:.2%} < 20%)")
-        return True
-
-    # ── Gate 5b: TENGAH harus ada HIJAU murni (naik 12% → 18%) ──
-    # Data nyata: cat_mid=5.29%, rice_leaf_mid=~40%+
-    if g_mid < 0.18:
-        print(f"[OOD Check] REJECTED – zona tengah (50%) kurang hijau murni ({g_mid:.2%} < 18%)")
         return True
 
     # ── Gate 6: Keseluruhan gambar ──
@@ -801,40 +776,52 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         print(f"[OOD Check] REJECTED – keseluruhan gambar kurang warna daun ({score_full:.2%} < 10%)")
         return True
 
-    # ── Gate 7: Distribusi spasial hijau (diperketat: 40%/20% → 30%/30%) ──
-    # Foto hewan di alam → edge_green tinggi, center_green rendah
-    if edge_green > 0.30 and center_green < 0.30:
+    # ════════════════════════════════════════════════════════════════
+    # GATE DISTRIBUSI SPASIAL (pembeda utama kucing vs daun)
+    # Kunci: daun padi close-up → warna daun MERATA seluruh frame.
+    # Kucing outdoor → warna hijau hanya di TEPI (background pohon),
+    # tengah gambar berisi badan kucing (coklat/kuning/abu).
+    # Data nyata kucing: edge_green=62%, center_green=4%, uniformity=0.00
+    # ════════════════════════════════════════════════════════════════
+
+    # ── Gate 7: Hijau hanya di tepi, tidak di tengah ──
+    # Untuk daun penyakit parah: center_green mungkin rendah, TAPI edge_green juga rendah
+    # Untuk kucing di alam: edge_green SANGAT tinggi vs center_green yang sangat rendah
+    if edge_green > 0.35 and center_green < 0.25:
         print(
             f"[OOD Check] REJECTED – hijau hanya di background/tepi "
             f"(edge={edge_green:.2%} >> center={center_green:.2%})"
         )
         return True
 
-    # ── Gate 8: Konsistensi hijau full vs core (diperketat) ──
-    # Daun padi: score_core ≈ score_full. Hewan di alam: score_full >> score_core
-    if score_full > 0.20 and score_core < 0.25 and (score_full - score_core) > 0.15:
+    # ── Gate 8: score_full jauh lebih tinggi dari score_core ──
+    # Daun penyakit parah: score_full ≈ score_core (penyakit merata di seluruh daun)
+    # Kucing: score_full=35% (background hijau), score_core=20% (bulu kucing) → selisih 15%
+    if score_full > 0.20 and score_core < 0.28 and (score_full - score_core) > 0.12:
         print(
-            f"[OOD Check] REJECTED – hijau tidak konsisten antara seluruh frame dan inti "
-            f"(full={score_full:.2%} >> core={score_core:.2%})"
+            f"[OOD Check] REJECTED – warna daun tidak merata (full={score_full:.2%} >> core={score_core:.2%})"
         )
         return True
 
-    # ── Gate 9: Uniformity check (diperketat: 0.35 → 0.50) ──
-    if score_full > 0.20 and green_uniformity < 0.50:
+    # ── Gate 9: Uniformity sangat rendah → warna hijau terkonsentrasi di satu sisi ──
+    # Data kucing: uniformity=0.00 (edge jauh lebih hijau dari center)
+    # Data daun penyakit: uniformity mendekati 1.0 (warna coklat merata)
+    if score_full > 0.15 and green_uniformity < 0.40:
         print(
-            f"[OOD Check] REJECTED – hijau tidak merata (uniformity={green_uniformity:.2f} < 0.50)"
+            f"[OOD Check] REJECTED – distribusi hijau sangat tidak merata "
+            f"(uniformity={green_uniformity:.2f} < 0.40, edge={edge_green:.2%} vs center={center_green:.2%})"
         )
         return True
 
-    # ── Gate 10: Rasio center_green vs score_full (baru) ──
-    # Untuk foto daun padi: center_green harus setara dengan keseluruhan gambar
-    # (karena daun mengisi seluruh frame, termasuk tengah)
-    if score_full > 0.15:
-        center_to_full_ratio = center_green / (score_full + 1e-6)
-        if center_to_full_ratio < 0.50:
+    # ── Gate 10: Rasio center_green vs edge_green (pembeda paling kuat untuk kucing) ──
+    # Daun penyakit: center_green/edge_green ≈ 1.0 (merata)
+    # Kucing: center_green=4% vs edge_green=62% → rasio = 0.07 (sangat timpang)
+    if edge_green > 0.20:
+        cg_eg_ratio = center_green / (edge_green + 1e-6)
+        if cg_eg_ratio < 0.40:
             print(
-                f"[OOD Check] REJECTED – proporsi hijau di tengah terlalu rendah "
-                f"(center={center_green:.2%} vs full={score_full:.2%}, rasio={center_to_full_ratio:.2f} < 0.50)"
+                f"[OOD Check] REJECTED – hijau sangat timpang antara tepi dan tengah "
+                f"(center={center_green:.2%} / edge={edge_green:.2%} = {cg_eg_ratio:.2f} < 0.40)"
             )
             return True
 
