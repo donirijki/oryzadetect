@@ -630,7 +630,7 @@ def predict(image_bytes: bytes) -> dict:
 
     # Threshold for OOD (Out-of-Distribution) detection
     if confidence < 75.0:
-        raise ValueError(f"Objek tidak terdeteksi sebagai daun padi atau tingkat keyakinan AI terlalu rendah ({confidence}%). Pastikan Anda mengunggah gambar daun padi yang jelas.")
+        raise ValueError("Sepertinya ini bukan foto daun padi. Silakan unggah gambar yang sesuai dengan objek yang dianalisis.")
 
     # Top-3 prediksi
     top3_indices = np.argsort(probs)[::-1][:3]
