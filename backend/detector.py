@@ -628,6 +628,26 @@ def predict(image_bytes: bytes) -> dict:
     # Log ringkas ke server (tidak membanjiri stdout)
     print(f"[predict] {pred_class} ({confidence}%)")
 
+    # Threshold for OOD (Out-of-Distribution) detection
+    if confidence < 75.0:
+        return {
+            "success": True,
+            "disease": "Tidak Dikenali",
+            "nameIndo": "Objek Tidak Valid",
+            "nameLatin": "-",
+            "category": "Tidak Dikenali",
+            "severity": None,
+            "confidence": confidence,
+            "top3": [],
+            "symptoms": ["Gambar yang diunggah tidak terdeteksi sebagai daun padi atau tingkat keyakinan AI terlalu rendah."],
+            "treatment": {
+                "chemical": [],
+                "organic": [],
+                "prevention": ["Pastikan gambar yang diunggah adalah daun padi yang jelas dan fokus."]
+            },
+            "gradcam_url": None,
+        }
+
     # Top-3 prediksi
     top3_indices = np.argsort(probs)[::-1][:3]
     top3 = [
