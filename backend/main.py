@@ -48,6 +48,15 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 def health():
     return {"status": "ok"}
 
+@app.get("/api/version")
+def version():
+    return {
+        "version": "v2.4-OOD-SPATIAL",
+        "commit": "587db59",
+        "description": "Gate Spatial Distribution OOD Filter Enabled"
+    }
+
+
 
 @app.post("/predict")
 @limiter.limit("25/minute")          # Maks 25 request per menit per IP
