@@ -814,24 +814,17 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         return True
 
     # ── Gate 10: Rasio center_green vs edge_green ──
+    # Objek outdoor (kucing di taman): background hijau di pinggir tinggi (edge_green > 15%),
+    # tapi di tengah foto hijau dekat 0 (center_green < 5%) -> rasio < 0.30
+    # Daun Brown Spot: hijau & coklat menyebar rata dari tengah ke pinggir -> rasio & score tinggi
     if edge_green > 0.15:
         cg_eg_ratio = center_green / (edge_green + 1e-6)
-        if cg_eg_ratio < 0.40:
+        if cg_eg_ratio < 0.30:
             print(
                 f"[OOD Check] REJECTED – hijau sangat timpang antara tepi dan tengah "
-                f"(center={center_green:.2%} / edge={edge_green:.2%} = {cg_eg_ratio:.2f} < 0.40)"
+                f"(center={center_green:.2%} / edge={edge_green:.2%} = {cg_eg_ratio:.2f} < 0.30)"
             )
             return True
-
-    # ── Gate 11: Nol hijau di tengah pada foto lingkungan outdoor ──
-    # Objek/Hewan outdoor: Ada warna hijau di background (score_full > 20%),
-    # tapi di PUSAT/MID gambar SAMA SEKALI TIDAK ADA HIJAU (g_mid < 8% atau g_core < 5%).
-    # Daun padi (sehat/sakit): Selalu memiliki bagian hijau di sela-sela bercak/tulang daun.
-    if score_full > 0.20 and (g_mid < 0.08 or g_core < 0.05):
-        print(
-            f"[OOD Check] REJECTED – objek di tengah bukan daun (background hijau={score_full:.2%}, tapi hijau tengah={g_mid:.2%})"
-        )
-        return True
 
     print(f"[OOD Check] PASSED – terdeteksi sebagai foto daun padi")
     return False
