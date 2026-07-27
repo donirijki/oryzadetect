@@ -653,22 +653,75 @@ def _leaf_score(img_region):
     return green_r, brown_r, score, neutral_r, skin_r
 
 
+def _green_distribution_score(img: np.ndarray) -> tuple:
+    """
+    Analisis distribusi spasial warna hijau.
+    Daun padi: hijau tersebar MERATA di seluruh gambar.
+    Foto hewan/objek outdoor: hijau hanya ada di PINGGIR (background),
+    sementara tengah gambar berisi objek (kucing, anjing, dll).
+
+    Return:
+      - center_green: rasio hijau di zona tengah (30%)
+      - edge_green: rasio hijau di zona tepi (luar 30%)
+      - green_uniformity: seberapa merata hijau tersebar (0=tidak merata, 1=sangat merata)
+      - center_brightness: kecerahan rata-rata di tengah gambar
+    """
+    import tensorflow as tf
+    H, W = img.shape[0], img.shape[1]
+
+    hsv = tf.image.rgb_to_hsv(img)
+    h = hsv[:, :, 0]
+    s = hsv[:, :, 1]
+    v = hsv[:, :, 2]
+
+    # Mask hijau lebar (termasuk hijau gelap/muda)
+    green_mask = tf.logical_and(
+        tf.logical_and(h >= 0.13, h <= 0.45),
+        tf.logical_and(s >= 0.15, v >= 0.10)
+    )
+    green_float = tf.cast(green_mask, tf.float32).numpy()
+
+    # Zone tengah: 30% center
+    mh = int(H * 0.35)
+    mw = int(W * 0.35)
+    center_green_area = green_float[mh:H-mh, mw:W-mw]
+    center_green = float(np.mean(center_green_area)) if center_green_area.size > 0 else 0.0
+
+    # Zone tepi: bagian di luar center 30%
+    edge_mask = np.ones_like(green_float, dtype=bool)
+    edge_mask[mh:H-mh, mw:W-mw] = False
+    edge_green_area = green_float[edge_mask]
+    edge_green = float(np.mean(edge_green_area)) if edge_green_area.size > 0 else 0.0
+
+    # Uniformity: jika selisih tepi-tengah besar, kemungkinan besar ada objek di tengah
+    # Untuk daun: center_green ≈ edge_green → selisih kecil
+    # Untuk kucing di alam: edge_green >> center_green → selisih besar
+    green_diff = max(0.0, edge_green - center_green)
+    green_uniformity = max(0.0, 1.0 - green_diff * 3.0)  # Penalti jika beda > 33%
+
+    # Kecerahan rata-rata di tengah
+    v_np = v.numpy()
+    center_brightness = float(np.mean(v_np[mh:H-mh, mw:W-mw]))
+
+    return center_green, edge_green, green_uniformity, center_brightness
+
+
 def is_ood_image(arr_rgb: np.ndarray) -> bool:
     """
-    Filter 3-level concentric crop untuk mendeteksi gambar yang BUKAN daun padi.
+    Filter 3-level concentric crop + analisis distribusi spasial hijau
+    untuk mendeteksi gambar yang BUKAN daun padi.
 
     Ide utama:
-      - Foto daun padi yang benar → warna daun mendominasi SELURUH frame, termasuk
-        bagian paling tengah gambar.
-      - Foto orang/benda di luar ruangan → bagian paling tengah gambar berisi
-        wajah/baju/objek, bukan daun. Pohon di background hanya ada di pinggir.
+      - Foto daun padi → hijau tersebar MERATA di seluruh frame, termasuk tengah.
+      - Foto hewan outdoor → hijau hanya di background/tepi. Tengah gambar berisi
+        hewan (kucing, anjing, dll.) yang relatif lebih gelap/berwarna berbeda.
+      - Foto orang di alam → sama, tengah berisi orang/wajah/baju.
 
-    3 zona yang dianalisis secara bersamaan:
-      ① INTI (center 20%): zona paling ketat. Untuk orang → wajah/baju. Untuk daun → hijau.
+    3 zona concentric crop + analisis distribusi spasial:
+      ① INTI (center 20%): zona paling ketat.
       ② TENGAH (center 50%): zona menengah.
       ③ PENUH (100%): seluruh gambar.
-
-    Ketiganya harus memenuhi syarat warna daun minimum untuk diterima.
+      ④ DISTRIBUSI: apakah hijau merata atau hanya di tepi?
     """
     img = arr_rgb[0]  # (224,224,3) nilai 0–1
 
@@ -677,13 +730,17 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
     g_mid,   br_mid,   score_mid,   neutral_mid,   skin_mid   = _leaf_score(_crop_center(img, 0.50))
     g_core,  br_core,  score_core,  neutral_core,  skin_core  = _leaf_score(_crop_center(img, 0.20))
 
+    # Analisis distribusi spasial hijau
+    center_green, edge_green, green_uniformity, center_brightness = _green_distribution_score(img)
+
     import tensorflow as tf
     hsv_full = tf.image.rgb_to_hsv(img)
     mean_sat = float(tf.reduce_mean(hsv_full[:, :, 1]).numpy())
 
     print(
         f"[OOD Check] full={score_full:.2%} | mid50={score_mid:.2%} | core20={score_core:.2%} | "
-        f"neutral_core={neutral_core:.2%} | skin_full={skin_full:.2%} | mean_sat={mean_sat:.2f}"
+        f"neutral_core={neutral_core:.2%} | skin_full={skin_full:.2%} | mean_sat={mean_sat:.2f} | "
+        f"center_g={center_green:.2%} | edge_g={edge_green:.2%} | uniformity={green_uniformity:.2f}"
     )
 
     # ── Gate 1: Deteksi kulit manusia di seluruh gambar ──
@@ -697,7 +754,7 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         return True
 
     # ── Gate 3: INTI gambar (20%) harus punya warna daun ──
-    # Foto orang → inti = wajah/baju → warna netral/kulit, bukan hijau
+    # Foto orang/hewan → inti = wajah/bulu/baju → warna netral/kulit, bukan hijau
     # Foto daun  → inti = daun itu sendiri → hijau/coklat penyakit
     if score_core < 0.15:
         print(f"[OOD Check] REJECTED – inti gambar (20%) bukan warna daun ({score_core:.2%} < 15%)")
@@ -716,6 +773,35 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
     # ── Gate 6: Keseluruhan gambar ──
     if score_full < 0.10:
         print(f"[OOD Check] REJECTED – keseluruhan gambar kurang warna daun ({score_full:.2%} < 10%)")
+        return True
+
+    # ── Gate 7: Analisis distribusi spasial hijau ──
+    # Jika hijau hanya ada di pinggir (background alam) tapi tidak di tengah
+    # → kemungkinan besar foto hewan/orang di alam terbuka (kucing, anjing, dll.)
+    if edge_green > 0.40 and center_green < 0.20:
+        print(
+            f"[OOD Check] REJECTED – hijau hanya di tepi/background, bukan di tengah "
+            f"(edge={edge_green:.2%} >> center={center_green:.2%})"
+        )
+        return True
+
+    # ── Gate 8: Konsistensi hijau seluruh gambar vs inti ──
+    # Daun padi: score_core ≈ score_mid ≈ score_full (hijau merata)
+    # Kucing di alam: score_full tinggi karena background, tapi score_core rendah (tengah = kucing)
+    if score_full > 0.30 and score_core < 0.20 and (score_full - score_core) > 0.20:
+        print(
+            f"[OOD Check] REJECTED – distribusi hijau tidak konsisten "
+            f"(full={score_full:.2%} tapi core={score_core:.2%}, selisih={score_full-score_core:.2%})"
+        )
+        return True
+
+    # ── Gate 9: Green uniformity check ──
+    # Jika hijau sangat tidak merata (hanya di tepi) → tolak
+    if score_full > 0.25 and green_uniformity < 0.35:
+        print(
+            f"[OOD Check] REJECTED – distribusi hijau tidak merata "
+            f"(uniformity={green_uniformity:.2f} < 0.35, full={score_full:.2%})"
+        )
         return True
 
     print(f"[OOD Check] PASSED – terdeteksi sebagai foto daun padi")
