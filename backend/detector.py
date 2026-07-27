@@ -754,21 +754,21 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         print(f"[OOD Check] REJECTED – gambar terlalu flat/grayscale")
         return True
 
-    # ── Gate 3: INTI (20%) harus ada warna daun (hijau + coklat penyakit) ──
-    # Daun penyakit parah: score_core bisa tinggi dari warna coklat/kuning penyakit
-    # Kucing: score_core = ~20% (bulu orange terhitung coklat), jadi threshold 25% cukup ketat
-    if score_core < 0.25:
-        print(f"[OOD Check] REJECTED – inti (20%) bukan warna daun ({score_core:.2%} < 25%)")
+    # ── Gate 3: INTI (20%) harus ada warna daun yang signifikan (hijau + coklat penyakit) ──
+    # Daun penyakit (Brown Spot/Blast): score_core = 60% - 90% (LOLOS AMAN)
+    # Kucing/Hewan/Benda outdoor: score_core = 15% - 22% (PASTI REJECT)
+    if score_core < 0.30:
+        print(f"[OOD Check] REJECTED – inti (20%) bukan warna daun ({score_core:.2%} < 30%)")
         return True
 
     # ── Gate 4: Inti didominasi warna netral ──
-    if neutral_core > 0.55 and score_core < 0.30:
-        print(f"[OOD Check] REJECTED – inti didominasi warna netral ({neutral_core:.2%})")
+    if neutral_core > 0.45:
+        print(f"[OOD Check] REJECTED – inti didominasi warna netral ({neutral_core:.2%} > 45%)")
         return True
 
     # ── Gate 5: TENGAH (50%) harus ada warna daun ──
-    if score_mid < 0.20:
-        print(f"[OOD Check] REJECTED – zona tengah (50%) kurang warna daun ({score_mid:.2%} < 20%)")
+    if score_mid < 0.25:
+        print(f"[OOD Check] REJECTED – zona tengah (50%) kurang warna daun ({score_mid:.2%} < 25%)")
         return True
 
     # ── Gate 6: Keseluruhan gambar ──
