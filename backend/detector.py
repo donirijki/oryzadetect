@@ -744,10 +744,10 @@ def is_ood_image(arr_rgb: np.ndarray) -> bool:
         f"center_g={center_green:.2%} | edge_g={edge_green:.2%} | uniformity={green_uniformity:.2f}"
     )
 
-    # ── Gate 1: Deteksi kulit manusia ──
-    if skin_full > 0.15:
-        print(f"[OOD Check] REJECTED – terlalu banyak warna kulit ({skin_full:.2%} > 15%)")
-        return True
+    # ── Gate 1 (skin) DIHAPUS ──
+    # Debug data: daun penyakit punya skin_full=18.96% karena warna coklat penyakit
+    # overlap dengan range kulit (hue 0-0.09). False positive terlalu tinggi.
+    # Kucing tetap tertangkap oleh Gate 3,5,7,8,9,10 (spatial distribution).
 
     # ── Gate 2: Gambar terlalu flat/grayscale ──
     if mean_sat < 0.08:
