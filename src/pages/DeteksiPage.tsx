@@ -83,9 +83,10 @@ export default function DeteksiPage() {
           category: r.category,
         })
       }
-    } catch {
-      setState('error'); setErrorMsg('Gagal memproses gambar. Periksa koneksi dan coba lagi.')
-      toast.error('Analisis Gagal', { description: 'Gagal memproses gambar. Periksa koneksi.' })
+    } catch (err: any) {
+      const msg = err?.message || 'Gagal memproses gambar. Periksa koneksi dan coba lagi.'
+      setState('error'); setErrorMsg(msg)
+      toast.error('Analisis Gagal', { description: msg })
     }
   }
 

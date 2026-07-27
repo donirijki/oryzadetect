@@ -629,7 +629,7 @@ def predict(image_bytes: bytes) -> dict:
     print(f"[predict] {pred_class} ({confidence}%)")
 
     # Threshold for OOD (Out-of-Distribution) detection
-    if confidence < 75.0:
+    if confidence < 60.0:
         raise ValueError("Sepertinya ini bukan foto daun padi. Silakan unggah gambar yang sesuai dengan objek yang dianalisis.")
 
     # Top-3 prediksi
